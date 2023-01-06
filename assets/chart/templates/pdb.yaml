@@ -1,0 +1,26 @@
+{{- $replicaCount := int .Values.{% .main_object_block %}.replicaCount }}
+{{- if and .Values.{% .main_object_block %}.pdb.create (gt $replicaCount 1) }}
+apiVersion: {{ include "common.capabilities.policy.apiVersion" . }}
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: {% .component_name %}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.{% .main_object_block %}.pdb.minAvailable }}
+  minAvailable: {{ .Values.{% .main_object_block %}.pdb.minAvailable }}
+  {{- end  }}
+  {{- if .Values.{% .main_object_block %}.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.{% .main_object_block %}.pdb.maxUnavailable }}
+  {{- end  }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {% .component_name %}
+{{- end }}

@@ -1,0 +1,11 @@
+apiVersion: {% default "v2" .apiVersion %}
+appVersion: {% .upstream_project_version %}
+dependencies:
+  {%- .dependencies | toYaml | nindent 2 %}
+description: {% .description %}
+engine: gotpl
+home: {% .upstream_project_url %}
+maintainers:
+  {%- .maintainers | toYaml | nindent 2 %}
+name: {% .chart_name %}
+version: {% .chart_version %}

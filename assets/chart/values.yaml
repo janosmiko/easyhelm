@@ -1,0 +1,767 @@
+## @section Global parameters
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
+##
+
+## @param global.imageRegistry Global Docker image registry
+## @param global.imagePullSecrets Global Docker registry secret names as an array
+## @param global.storageClass Global StorageClass for Persistent Volume(s)
+##
+global:
+  imageRegistry: ""
+  ## E.g.
+  ## imagePullSecrets:
+  ##   - myRegistryKeySecretName
+  ##
+  imagePullSecrets: []
+  storageClass: ""
+
+## @section Common parameters
+##
+
+## @param kubeVersion Override Kubernetes version
+##
+kubeVersion: ""
+## @param nameOverride String to partially override common.names.name
+##
+nameOverride: ""
+## @param fullnameOverride String to fully override common.names.fullname
+##
+fullnameOverride: ""
+## @param namespaceOverride String to fully override common.names.namespace
+##
+namespaceOverride: ""
+## @param commonLabels Labels to add to all deployed objects
+##
+commonLabels: {}
+## @param commonAnnotations Annotations to add to all deployed objects
+##
+commonAnnotations: {}
+## @param clusterDomain Kubernetes cluster domain name
+##
+clusterDomain: cluster.local
+## @param extraDeploy Array of extra objects to deploy with the release
+##
+extraDeploy: []
+
+## Enable diagnostic mode in the deployment
+##
+diagnosticMode:
+  ## @param diagnosticMode.enabled Enable diagnostic mode (all probes will be disabled and the command will be overridden)
+  ##
+  enabled: false
+  ## @param diagnosticMode.command Command to override all containers in the deployment
+  ##
+  command:
+    - sleep
+  ## @param diagnosticMode.args Args to override all containers in the deployment
+  ##
+  args:
+    - infinity
+
+## @section {% .main_container %} Parameters
+##
+
+## {% .main_container_pod_description %}
+##
+{% .main_object_block %}:
+  ## {% .main_container %} image
+  ## @param {% .main_object_block %}.image.registry {% .main_container %} image registry
+  ## @param {% .main_object_block %}.image.repository {% .main_container %} image repository
+  ## @param {% .main_object_block %}.image.tag {% .main_container %} image tag (immutable tags are recommended)
+  ## @param {% .main_object_block %}.image.digest {% .main_container %} image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
+  ## @param {% .main_object_block %}.image.pullPolicy {% .main_container %} image pull policy
+  ## @param {% .main_object_block %}.image.pullSecrets {% .main_container %} image pull secrets
+  ## @param {% .main_object_block %}.image.debug Enable {% .main_container %} image debug mode
+  ##
+  image:
+    registry: {% .default_image_registry %}
+    repository: {% .default_image_repo %}
+    tag: {% .default_image_tag %}
+    digest: ""
+    ## Specify a imagePullPolicy
+    ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+    ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+    ##
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+    ## Enable debug mode
+    ##
+    debug: false
+  ## @param {% .main_object_block %}.kind Kind of the application. Allowed values: Deployment, StatefulSet, DaemonSet
+  ##
+  kind: Deployment
+  ## @param {% .main_object_block %}.replicaCount Number of {% .main_container %} replicas to deploy
+  ##
+  replicaCount: 1
+  ## @param {% .main_object_block %}.containerPorts.http {% .main_container %} HTTP container port
+  ## @param {% .main_object_block %}.containerPorts.https {% .main_container %} HTTPS container port
+  ##
+  containerPorts:
+  {%- if .ports %}
+  {%- range $key, $value := .ports -%}
+    {%- printf "%s: %d" $value.name $value.port | nindent 4 -%}
+  {%- end %}
+  {%- else %}
+    http: 8080
+  {%- end %}
+  ## Configure extra options for {% .main_container %} containers' liveness and readiness probes
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param {% .main_object_block %}.livenessProbe.enabled Enable livenessProbe on {% .main_container %} containers
+  ## @param {% .main_object_block %}.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param {% .main_object_block %}.livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param {% .main_object_block %}.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param {% .main_object_block %}.livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param {% .main_object_block %}.livenessProbe.successThreshold Success threshold for livenessProbe
+  ##
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+    httpGet:
+      path: /healthz
+      port: {% default 8080 (index .ports 0).port %}
+    # exec:
+    #   command:
+    #     - cat
+    #     - /tmp/healthy
+    # tcpSocket:
+    #   port: {% default 8080 (index .ports 0).port %}
+    # grpc:
+    #   port: 2379
+  ## @param {% .main_object_block %}.readinessProbe.enabled Enable readinessProbe on {% .main_container %} containers
+  ## @param {% .main_object_block %}.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param {% .main_object_block %}.readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param {% .main_object_block %}.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param {% .main_object_block %}.readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param {% .main_object_block %}.readinessProbe.successThreshold Success threshold for readinessProbe
+  ##
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+    httpGet:
+      path: /healthz
+      port: {% default "8080" (index .ports 0).port %}
+    # exec:
+    #   command:
+    #     - cat
+    #     - /tmp/healthy
+    # tcpSocket:
+    #   port: {% default "8080" (index .ports 0).port %}
+    # grpc:
+    #   port: 2379
+  ## @param {% .main_object_block %}.startupProbe.enabled Enable startupProbe on {% .main_container %} containers
+  ## @param {% .main_object_block %}.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  ## @param {% .main_object_block %}.startupProbe.periodSeconds Period seconds for startupProbe
+  ## @param {% .main_object_block %}.startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  ## @param {% .main_object_block %}.startupProbe.failureThreshold Failure threshold for startupProbe
+  ## @param {% .main_object_block %}.startupProbe.successThreshold Success threshold for startupProbe
+  ##
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+    httpGet:
+      path: /healthz
+      port: {% default "8080" (index .ports 0).port %}
+    # exec:
+    #   command:
+    #     - cat
+    #     - /tmp/healthy
+    # tcpSocket:
+    #   port: {% default "8080" (index .ports 0).port %}
+    # grpc:
+    #   port: 2379
+  ## @param {% .main_object_block %}.customLivenessProbe Custom livenessProbe that overrides the default one
+  ##
+  customLivenessProbe: {}
+  ## @param {% .main_object_block %}.customReadinessProbe Custom readinessProbe that overrides the default one
+  ##
+  customReadinessProbe: {}
+  ## @param {% .main_object_block %}.customStartupProbe Custom startupProbe that overrides the default one
+  ##
+  customStartupProbe: {}
+  ## {% .main_container %} resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ## @param {% .main_object_block %}.resources.limits The resources limits for the {% .main_container %} containers
+  ## @param {% .main_object_block %}.resources.requests The requested resources for the {% .main_container %} containers
+  ##
+  resources:
+    limits: {}
+    requests: {}
+  ## Configure Pods Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param {% .main_object_block %}.podSecurityContext.enabled Enabled {% .main_container %} pods' Security Context
+  ## @param {% .main_object_block %}.podSecurityContext.fsGroup Set {% .main_container %} pod's Security Context fsGroup
+  ##
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+  ## Configure Container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param {% .main_object_block %}.containerSecurityContext.enabled Enabled {% .main_container %} containers' Security Context
+  ## @param {% .main_object_block %}.containerSecurityContext.runAsUser Set {% .main_container %} containers' Security Context runAsUser
+  ## @param {% .main_object_block %}.containerSecurityContext.runAsNonRoot Set {% .main_container %} containers' Security Context runAsNonRoot
+  ## @param {% .main_object_block %}.containerSecurityContext.readOnlyRootFilesystem Set {% .main_container %} containers' Security Context runAsNonRoot
+  ##
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsNonRoot: true
+    readOnlyRootFilesystem: false
+
+  {% printf .main_object_additional_parameters | nindent 2 %}
+
+  ## @param {% .main_object_block %}.existingConfigmap The name of an existing ConfigMap with your custom configuration for {% .main_container %}
+  ##
+  existingConfigmap:
+  ## @param {% .main_object_block %}.command Override default container command (useful when using custom images)
+  ##
+  command: []
+  ## @param {% .main_object_block %}.args Override default container args (useful when using custom images)
+  ##
+  args: []
+  ## @param {% .main_object_block %}.hostAliases {% .main_container %} pods host aliases
+  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+  ##
+  hostAliases: []
+  ## @param {% .main_object_block %}.podLabels Extra labels for {% .main_container %} pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  ##
+  podLabels: {}
+  ## @param {% .main_object_block %}.podAnnotations Annotations for {% .main_container %} pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  ##
+  podAnnotations: {}
+  ## @param {% .main_object_block %}.podAffinityPreset Pod affinity preset. Ignored if `{% .main_object_block %}.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAffinityPreset: ""
+  ## @param {% .main_object_block %}.podAntiAffinityPreset Pod anti-affinity preset. Ignored if `{% .main_object_block %}.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAntiAffinityPreset: soft
+  ## Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb
+  ## @param {% .main_object_block %}.pdb.create Enable/disable a Pod Disruption Budget creation
+  ## @param {% .main_object_block %}.pdb.minAvailable Minimum number/percentage of pods that should remain scheduled
+  ## @param {% .main_object_block %}.pdb.maxUnavailable Maximum number/percentage of pods that may be made unavailable
+  ##
+  pdb:
+    create: false
+    minAvailable: 1
+    maxUnavailable: ""
+  ## Autoscaling configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  ## @param {% .main_object_block %}.autoscaling.enabled Enable autoscaling for {% .main_object_block %}
+  ## @param {% .main_object_block %}.autoscaling.minReplicas Minimum number of {% .main_object_block %} replicas
+  ## @param {% .main_object_block %}.autoscaling.maxReplicas Maximum number of {% .main_object_block %} replicas
+  ## @param {% .main_object_block %}.autoscaling.targetCPU Target CPU utilization percentage
+  ## @param {% .main_object_block %}.autoscaling.targetMemory Target Memory utilization percentage
+  ##
+  autoscaling:
+    enabled: false
+    minReplicas: ""
+    maxReplicas: ""
+    targetCPU: ""
+    targetMemory: ""
+  ## Node {% .main_object_block %}.affinity preset
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  ##
+  nodeAffinityPreset:
+    ## @param {% .main_object_block %}.nodeAffinityPreset.type Node affinity preset type. Ignored if `{% .main_object_block %}.affinity` is set. Allowed values: `soft` or `hard`
+    ##
+    type: ""
+    ## @param {% .main_object_block %}.nodeAffinityPreset.key Node label key to match. Ignored if `{% .main_object_block %}.affinity` is set
+    ##
+    key: ""
+    ## @param {% .main_object_block %}.nodeAffinityPreset.values Node label values to match. Ignored if `{% .main_object_block %}.affinity` is set
+    ## E.g.
+    ## values:
+    ##   - e2e-az1
+    ##   - e2e-az2
+    ##
+    values: []
+  ## @param {% .main_object_block %}.affinity Affinity for {% .main_container %} pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## NOTE: `{% .main_object_block %}.podAffinityPreset`, `{% .main_object_block %}.podAntiAffinityPreset`, and `{% .main_object_block %}.nodeAffinityPreset` will be ignored when it's set
+  ##
+  affinity: {}
+  ## @param {% .main_object_block %}.nodeSelector Node labels for {% .main_container %} pods assignment
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+  ## @param {% .main_object_block %}.tolerations Tolerations for {% .main_container %} pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  ## @param {% .main_object_block %}.updateStrategy.type {% .main_container %} statefulset strategy type
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+  ##
+  updateStrategy:
+    ## StrategyType
+    ## Can be set to RollingUpdate or OnDelete
+    ##
+    type: RollingUpdate
+
+  ## ONLY FOR STATEFULSETS
+  ## @param {% .main_object_block %}.podManagementPolicy Statefulset Pod management policy, it needs to be Parallel to be able to complete the cluster join
+  ## Ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+  ##
+  podManagementPolicy: OrderedReady
+
+  ## @param {% .main_object_block %}.priorityClassName {% .main_container %} pods' priorityClassName
+  ##
+  priorityClassName: ""
+  ## @param {% .main_object_block %}.topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
+  ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
+  ##
+  topologySpreadConstraints: []
+  ## @param {% .main_object_block %}.schedulerName Name of the k8s scheduler (other than default) for {% .main_container %} pods
+  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+  ##
+  schedulerName: ""
+  ## @param {% .main_object_block %}.terminationGracePeriodSeconds Seconds Redmine pod needs to terminate gracefully
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
+  ##
+  terminationGracePeriodSeconds: ""
+  ## @param {% .main_object_block %}.lifecycleHooks for the {% .main_container %} container(s) to automate configuration before or after startup
+  ##
+  lifecycleHooks: {}
+  ## @param {% .main_object_block %}.secrets Secret contains env var secrets for {% .main_container %} nodes
+  ##
+  secrets: {}
+  ## @param {% .main_object_block %}.extraEnvVars Array with extra environment variables to add to {% .main_container %} nodes
+  ## e.g:
+  ## extraEnvVars:
+  ##   - name: FOO
+  ##     value: "bar"
+  ##
+  extraEnvVars: []
+  ## @param {% .main_object_block %}.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for {% .main_container %} nodes
+  ##
+  extraEnvVarsCM: ""
+  ## @param {% .main_object_block %}.extraEnvVarsSecret Name of existing Secret containing extra env vars for {% .main_container %} nodes
+  ##
+  extraEnvVarsSecret: ""
+  ## @param {% .main_object_block %}.extraVolumes Optionally specify extra list of additional volumes for the {% .main_container %} pod(s)
+  ##
+  extraVolumes: []
+  ## @param {% .main_object_block %}.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the {% .main_container %} container(s)
+  ##
+  extraVolumeMounts: []
+  ## @param {% .main_object_block %}.sidecars Add additional sidecar containers to the {% .main_container %} pod(s)
+  ## e.g:
+  ## sidecars:
+  ##   - name: your-image-name
+  ##     image: your-image
+  ##     imagePullPolicy: Always
+  ##     ports:
+  ##       - name: portname
+  ##         containerPort: 1234
+  ##
+  sidecars: []
+  ## @param {% .main_object_block %}.initContainers Add additional init containers to the {% .main_container %} pod(s)
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+  ## e.g:
+  ## initContainers:
+  ##  - name: your-image-name
+  ##    image: your-image
+  ##    imagePullPolicy: Always
+  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##
+  initContainers: []
+
+  ## @section Traffic Exposure Parameters
+  ##
+
+  ## {% .main_container %} service parameters
+  ##
+  service:
+    ## @param {% .main_object_block %}..service.type {% .main_container %} service type
+    ##
+    type: ClusterIP
+    ## @param {% .main_object_block %}.service.ports.http {% .main_container %} service HTTP port
+    ## @param {% .main_object_block %}.service.ports.https {% .main_container %} service HTTPS port
+    ##
+    ports:
+    {%- range $key, $value := .ports -%}
+      {%- printf "%s: %d" $value.name $value.port | nindent 6 -%}
+    {%- end %}
+    ## Node ports to expose
+    ## @param {% .main_object_block %}.service.nodePorts.http Node port for HTTP
+    ## @param {% .main_object_block %}.service.nodePorts.https Node port for HTTPS
+    ## NOTE: choose port between <30000-32767>
+    ##
+    nodePorts:
+    {%- range $key, $value := .ports -%}
+      {%- printf `%s: ""` $value.name | nindent 6 -%}
+    {%- end %}
+    ## @param {% .main_object_block %}.service.clusterIP {% .main_container %} service Cluster IP
+    ## e.g.:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param {% .main_object_block %}.service.loadBalancerIP {% .main_container %} service Load Balancer IP
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerIP: ""
+    ## @param {% .main_object_block %}.service.loadBalancerSourceRanges {% .main_container %} service Load Balancer sources
+    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## e.g:
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param {% .main_object_block %}.service.externalTrafficPolicy {% .main_container %} service external traffic policy
+    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param {% .main_object_block %}.service.annotations Additional custom annotations for {% .main_container %} service
+    ##
+    annotations: {}
+    ## @param {% .main_object_block %}.service.extraPorts Extra ports to expose in {% .main_container %} service (normally used with the `sidecars` value)
+    ##
+    extraPorts: []
+    ## @param {% .main_object_block %}.service.sessionAffinity Control where client requests go, to the same pod or round-robin
+    ## Values: ClientIP or None
+    ## ref: https://kubernetes.io/docs/user-guide/services/
+    ##
+    sessionAffinity: None
+    ## @param {% .main_object_block %}.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
+
+  ## {% .main_container %} ingress parameters
+  ## ref: http://kubernetes.io/docs/user-guide/ingress/
+  ##
+  ingress:
+    ## @param {% .main_object_block %}.ingress.enabled Enable ingress record generation for {% .main_container %}
+    ##
+    enabled: false
+    ## @param {% .main_object_block %}.ingress.pathType Ingress path type
+    ##
+    pathType: ImplementationSpecific
+    ## @param {% .main_object_block %}.ingress.apiVersion Force Ingress API version (automatically detected if not set)
+    ##
+    apiVersion: ""
+    ## @param {% .main_object_block %}.ingress.hostname Default host for the ingress record
+    ##
+    hostname: {% .component_name %}.local
+    ## @param {% .main_object_block %}.ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
+    ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+    ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+    ##
+    ingressClassName: ""
+    ## @param {% .main_object_block %}.ingress.path Default path for the ingress record
+    ## NOTE: You may need to set this to '/*' in order to use this with ALB ingress controllers
+    ##
+    path: /
+    ## @param {% .main_object_block %}.ingress.annotations Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+    ## Use this parameter to set the required annotations for cert-manager, see
+    ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+    ## e.g:
+    ## annotations:
+    ##   kubernetes.io/ingress.class: nginx
+    ##   cert-manager.io/cluster-issuer: cluster-issuer-name
+    ##
+    annotations: {}
+    ## @param {% .main_object_block %}.ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+    ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" .Values.ingress.hostname }}`
+    ## You can:
+    ##   - Use the `ingress.secrets` parameter to create this TLS secret
+    ##   - Rely on cert-manager to create it by setting the corresponding annotations
+    ##   - Rely on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
+    ##
+    tls: false
+    ## @param {% .main_object_block %}.ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
+    ##
+    selfSigned: false
+    ## @param {% .main_object_block %}.ingress.extraHosts An array with additional hostname(s) to be covered with the ingress record
+    ## e.g:
+    ## extraHosts:
+    ##   - name: {% .component_name %}.local
+    ##     path: /
+    ##
+    extraHosts: []
+    ## @param {% .main_object_block %}.ingress.extraPaths An array with additional arbitrary paths that may need to be added to the ingress under the main host
+    ## e.g:
+    ## extraPaths:
+    ## - path: /*
+    ##   backend:
+    ##     serviceName: ssl-redirect
+    ##     servicePort: use-annotation
+    ##
+    extraPaths: []
+    ## @param {% .main_object_block %}.ingress.extraTls TLS configuration for additional hostname(s) to be covered with this ingress record
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+    ## e.g:
+    ## extraTls:
+    ## - hosts:
+    ##     - {% .component_name %}.local
+    ##   secretName: {% .component_name %}.local-tls
+    ##
+    extraTls: []
+    ## @param {% .main_object_block %}.ingress.secrets Custom TLS certificates as secrets
+    ## NOTE: 'key' and 'certificate' are expected in PEM format
+    ## NOTE: 'name' should line up with a 'secretName' set further up
+    ## If it is not set and you're using cert-manager, this is unneeded, as it will create a secret for you with valid certificates
+    ## If it is not set and you're NOT using cert-manager either, self-signed certificates will be created valid for 365 days
+    ## It is also possible to create and manage the certificates outside of this helm chart
+    ## Please see README.md for more information
+    ## e.g:
+    ## secrets:
+    ##   - name: {% .component_name %}.local-tls
+    ##     key: |-
+    ##       -----BEGIN RSA PRIVATE KEY-----
+    ##       ...
+    ##       -----END RSA PRIVATE KEY-----
+    ##     certificate: |-
+    ##       -----BEGIN CERTIFICATE-----
+    ##       ...
+    ##       -----END CERTIFICATE-----
+    ##
+    secrets: []
+    ## @param {% .main_object_block %}.ingress.extraRules Additional rules to be covered with this ingress record
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+    ## e.g:
+    ## extraRules:
+    ## - host: example.local
+    ##     http:
+    ##       path: /
+    ##       backend:
+    ##         service:
+    ##           name: example-svc
+    ##           port:
+    ##             name: http
+    ##
+    extraRules: []
+
+  ## @section Persistence Parameters
+  ##
+
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes/
+  ##
+  persistence:
+    ## @param {% .main_object_block %}.persistence.enabled Enable persistence using Persistent Volume Claims
+    ##
+    enabled: true
+    ## @param {% .main_object_block %}.persistence.mountPath Path to mount the volume at.
+    ##
+    mountPath: /data
+    ## @param {% .main_object_block %}.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
+    ##
+    subPath: ""
+    ## @param {% .main_object_block %}.persistence.storageClass Storage class of backing PVC
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    ## @param {% .main_object_block %}.persistence.annotations Persistent Volume Claim annotations
+    ##
+    annotations: {}
+    ## @param {% .main_object_block %}.persistence.accessModes Persistent Volume Access Modes
+    ##
+    accessModes:
+      - ReadWriteOnce
+    ## @param {% .main_object_block %}.persistence.size Size of data volume
+    ##
+    size: 8Gi
+    ## @param {% .main_object_block %}.persistence.existingClaim The name of an existing PVC to use for persistence
+    ##
+    existingClaim: ""
+    ## @param {% .main_object_block %}.persistence.selector Selector to match an existing Persistent Volume for WordPress data PVC
+    ## If set, the PVC can't have a PV dynamically provisioned for it
+    ## E.g.
+    ## selector:
+    ##   matchLabels:
+    ##     app: my-app
+    ##
+    selector: {}
+    ## @param {% .main_object_block %}.persistence.dataSource Custom PVC data source
+    ##
+    dataSource: {}
+
+{% range $key, $value := .customObjects %}
+## {% $value.description %}
+##
+{% printf "%s:" $value.name %}
+  {%- printf $value.parameters | toYaml | nindent 2 %}
+{% end %}
+
+## @section Init Container Parameters
+##
+
+## 'volumePermissions' init container parameters
+## Changes the owner and group of the persistent volume mount point to runAsUser:fsGroup values
+##   based on the *podSecurityContext/*containerSecurityContext parameters
+##
+volumePermissions:
+  ## @param volumePermissions.enabled Enable init container that changes the owner/group of the PV mount point to `runAsUser:fsGroup`
+  ##
+  enabled: false
+  ## Bitnami Shell image
+  ## ref: https://hub.docker.com/r/bitnami/bitnami-shell/tags/
+  ## @param volumePermissions.image.registry Bitnami Shell image registry
+  ## @param volumePermissions.image.repository Bitnami Shell image repository
+  ## @param volumePermissions.image.tag Bitnami Shell image tag (immutable tags are recommended)
+  ## @param volumePermissions.image.pullPolicy Bitnami Shell image pull policy
+  ## @param volumePermissions.image.pullSecrets Bitnami Shell image pull secrets
+  ##
+  image:
+    registry: {% default .default_image_registry .shell_image_registry %}
+    repository: {% .shell_image_repository %}
+    tag: {% default .default_image_tag .shell_image_tag %}
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## Init container's resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ## @param volumePermissions.resources.limits The resources limits for the init container
+  ## @param volumePermissions.resources.requests The requested resources for the init container
+  ##
+  resources:
+    limits: {}
+    requests: {}
+  ## Init container Container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param volumePermissions.containerSecurityContext.runAsUser Set init container's Security Context runAsUser
+  ## NOTE: when runAsUser is set to special value "auto", init container will try to chown the
+  ##   data folder to auto-determined user&group, using commands: `id -u`:`id -G | cut -d" " -f2`
+  ##   "auto" is especially useful for OpenShift which has scc with dynamic user ids (and 0 is not allowed)
+  ##
+  containerSecurityContext:
+    runAsUser: 0
+
+## @section Other Parameters
+##
+
+## RBAC configuration
+##
+rbac:
+  ## @param rbac.create Specifies whether RBAC resources should be created
+  ##
+  create: false
+  ## @param rbac.rules Custom RBAC rules to set
+  ## e.g:
+  ## rules:
+  ##   - apiGroups:
+  ##       - ""
+  ##     resources:
+  ##       - pods
+  ##     verbs:
+  ##       - get
+  ##       - list
+  ##
+  rules: []
+
+## ServiceAccount configuration
+##
+serviceAccount:
+  ## @param serviceAccount.create Specifies whether a ServiceAccount should be created
+  ##
+  create: true
+  ## @param serviceAccount.name The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the common.names.fullname template
+  ##
+  name: ""
+  ## @param serviceAccount.annotations Additional Service Account annotations (evaluated as a template)
+  ##
+  annotations: {}
+  ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
+  ##
+  automountServiceAccountToken: true
+
+## Prometheus metrics
+##
+metrics:
+  ## @param metrics.enabled Enable the export of Prometheus metrics
+  ##
+  enabled: false
+  ## Prometheus Operator ServiceMonitor configuration
+  ##
+  serviceMonitor:
+    ## @param metrics.serviceMonitor.enabled if `true`, creates a Prometheus Operator ServiceMonitor (also requires `metrics.enabled` to be `true`)
+    ##
+    enabled: false
+    ## @param metrics.serviceMonitor.namespace Namespace in which Prometheus is running
+    ##
+    namespace: ""
+    ## @param metrics.serviceMonitor.annotations Additional custom annotations for the ServiceMonitor
+    ##
+    annotations: {}
+    ## @param metrics.serviceMonitor.labels Extra labels for the ServiceMonitor
+    ##
+    labels: {}
+    ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in Prometheus
+    ##
+    jobLabel: ""
+    ## @param metrics.serviceMonitor.honorLabels honorLabels chooses the metric's labels on collisions with target labels
+    ##
+    honorLabels: false
+    ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped.
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+    ## e.g:
+    ## interval: 10s
+    ##
+    interval: ""
+    ## @param metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+    ## e.g:
+    ## scrapeTimeout: 10s
+    ##
+    scrapeTimeout: ""
+    ## @param metrics.serviceMonitor.metricRelabelings Specify additional relabeling of metrics
+    ##
+    metricRelabelings: []
+    ## @param metrics.serviceMonitor.relabelings Specify general relabeling
+    ##
+    relabelings: []
+    ## @param metrics.serviceMonitor.selector Prometheus instance selector labels
+    ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
+    ## selector:
+    ##   prometheus: my-prometheus
+    ##
+    selector: {}
+
+{% range $key, $value := .subcharts -%}
+{%- if ( and $value.description $value.parameters ) -%}
+## {% $value.description %}
+##
+{%- end -%}
+{% if $value.parameters -%}
+  {%- printf "%s:" $value.name | nindent 2 %}
+    {%- $value.parameters | toYaml | nindent 4 %}
+{%- end -%}
+{%- end %}

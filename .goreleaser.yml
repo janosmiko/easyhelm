@@ -1,0 +1,65 @@
+---
+project_name: easyhelm
+before:
+  hooks:
+    - go mod download
+    - go generate ./...
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/easyhelm
+    ldflags:
+      - -s -w -X main.VERSION={{.Tag}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+      - "386"
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: '{{- .ProjectName -}}_{{- .Os -}}_{{- if and (eq .Os "Linux") (eq .Arch "arm64") -}}aarch64{{- else -}}{{- .Arch -}}{{- end -}}'
+    files:
+      - none*
+release:
+  draft: false
+  replace_existing_draft: true
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+nfpms:
+  - package_name: easyhelm
+    file_name_template: '{{- .ProjectName -}}_{{- .Os -}}_{{- if and (eq .Os "Linux") (eq .Arch "arm64") -}}aarch64{{- else -}}{{- .Arch -}}{{- end -}}'
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    maintainer: Janos Miko <info@janosmiko.com>
+    description: Easyhelm - Generate helm charts from a simple configuration file.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    dependencies: [ ]
+    recommends: [ ]
+    bindir: /usr/bin
+    contents: [ ]
+    rpm:
+      compression: lzma

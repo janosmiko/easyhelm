@@ -1,0 +1,180 @@
+{{- if eq "Deployment" .Values.{% .main_object_block %}.kind -}}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ template "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: {% .component_name %}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.{% .main_object_block %}.autoscaling.enabled }}
+  replicas: {{ .Values.{% .main_object_block %}.replicaCount }}
+  {{- end }}
+  {{- if .Values.{% .main_object_block %}.updateStrategy }}
+  strategy: {{- toYaml .Values.{% .main_object_block %}.updateStrategy | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {% .component_name %}
+  template:
+    metadata:
+      {{- if .Values.{% .main_object_block %}.podAnnotations }}
+      annotations: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: {% .component_name %}
+        {{- if .Values.{% .main_object_block %}.podLabels }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.podLabels "context" $) | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ template "{% .chart_name %}.serviceAccountName" . }}
+      {{- include "{% .chart_name %}.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.{% .main_object_block %}.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.{% .main_object_block %}.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.{% .main_object_block %}.podAffinityPreset "component" "{% .component_name %}" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.{% .main_object_block %}.podAntiAffinityPreset "component" "{% .component_name %}" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.{% .main_object_block %}.nodeAffinityPreset.type "key" .Values.{% .main_object_block %}.nodeAffinityPreset.key "values" .Values.{% .main_object_block %}.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.{% .main_object_block %}.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.priorityClassName }}
+      priorityClassName: {{ .Values.{% .main_object_block %}.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.schedulerName }}
+      schedulerName: {{ .Values.{% .main_object_block %}.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.{% .main_object_block %}.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if .Values.{% .main_object_block %}.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.{% .main_object_block %}.terminationGracePeriodSeconds }}
+      {{- end }}
+      initContainers:
+        {{- if and .Values.volumePermissions.enabled .Values.{% .main_object_block %}.persistence.enabled }}
+        - name: volume-permissions
+          image: {{ include "{% .chart_name %}.volumePermissions.image" . }}
+          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.volumePermissions.command "context" $) | nindent 12 }}
+          securityContext: {{- include "common.tplvalues.render" (dict "value" .Values.volumePermissions.containerSecurityContext "context" $) | nindent 12 }}
+          {{- if .Values.volumePermissions.resources }}
+          resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ printf "%s-data" ( include "common.names.fullname" . ) }}
+              mountPath: {{ .Values.{% .main_object_block %}.persistence.mountPath }}
+              {{- if .Values.{% .main_object_block %}.persistence.subPath }}
+              subPath: {{ .Values.{% .main_object_block %}.persistence.subPath }}
+              {{- end }}
+        {{- end }}
+        {{- if .Values.{% .main_object_block %}.initContainers }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: {% .main_container %}
+          image: {{ template "{% .chart_name %}.image" . }}
+          imagePullPolicy: {{ .Values.{% .main_object_block %}.image.pullPolicy }}
+          {{- if .Values.{% .main_object_block %}.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.{% .main_object_block %}.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if .Values.{% .main_object_block %}.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if .Values.{% .main_object_block %}.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: DEBUG
+              value: {{ ternary "true" "false" (or .Values.{% .main_object_block %}.image.debug .Values.diagnosticMode.enabled) | quote }}
+            {{- if .Values.{% .main_object_block %}.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.{% .main_object_block %}.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.extraEnvVarsCM "context" $) }}
+            {{- end }}
+            {{- if .Values.{% .main_object_block %}.secrets }}
+            - secretRef:
+                name: {{ include "common.names.fullname" . }}
+            {{- end }}
+            {{- if .Values.{% .main_object_block %}.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.extraEnvVarsSecret "context" $) }}
+            {{- end }}
+          {{- if .Values.{% .main_object_block %}.resources }}
+          resources: {{- toYaml .Values.{% .main_object_block %}.resources | nindent 12 }}
+          {{- end }}
+          {%- if .ports %}
+          {%- $main_object_block := .main_object_block %}
+          ports:
+            {%- range $key, $value := .ports %}
+            - name: {% $value.name %}
+              containerPort: {{ .Values.{% $main_object_block %}.containerPorts.{% $value.name %} }}
+            {%- end -%}
+          {%- end %}
+          {{- if not .Values.diagnosticMode.enabled }}
+          {{- if .Values.{% .main_object_block %}.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.{% .main_object_block %}.livenessProbe.enabled }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.{% .main_object_block %}.livenessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.{% .main_object_block %}.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.{% .main_object_block %}.readinessProbe.enabled }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.{% .main_object_block %}.readinessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.{% .main_object_block %}.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.{% .main_object_block %}.startupProbe.enabled }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.{% .main_object_block %}.startupProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.{% .main_object_block %}.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ printf "%s-data" ( include "common.names.fullname" . ) }}
+              mountPath: {{ .Values.{% .main_object_block %}.persistence.mountPath }}
+              {{- if .Values.{% .main_object_block %}.persistence.subPath }}
+              subPath: {{ .Values.{% .main_object_block %}.persistence.subPath }}
+              {{- end }}
+          {{- if .Values.{% .main_object_block %}.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+        {{- if .Values.{% .main_object_block %}.sidecars }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.{% .main_object_block %}.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: {{ printf "%s-data" ( include "common.names.fullname" . ) }}
+        {{- if .Values.{% .main_object_block %}.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "common.names.fullname" .) .Values.{% .main_object_block %}.persistence.existingClaim }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.{% .main_object_block %}.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+{{- end }}

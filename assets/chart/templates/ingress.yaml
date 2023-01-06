@@ -1,0 +1,63 @@
+{{- if .Values.{% .main_object_block %}.ingress.enabled }}
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ template "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: {% .component_name %}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.{% .main_object_block %}.ingress.annotations .Values.commonAnnotations }}
+  annotations:
+    {{- if .Values.{% .main_object_block %}.ingress.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.{% .main_object_block %}.ingress.annotations "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if and .Values.{% .main_object_block %}.ingress.ingressClassName (eq "true" (include "common.ingress.supportsIngressClassname" .)) }}
+  ingressClassName: {{ .Values.{% .main_object_block %}.ingress.ingressClassName | quote }}
+  {{- end }}
+  rules:
+    {{- if .Values.{% .main_object_block %}.ingress.hostname }}
+    - host: {{ .Values.{% .main_object_block %}.ingress.hostname }}
+      http:
+        paths:
+          {{- if .Values.{% .main_object_block %}.ingress.extraPaths }}
+          {{- toYaml .Values.{% .main_object_block %}.ingress.extraPaths | nindent 10 }}
+          {{- end }}
+          - path: {{ .Values.{% .main_object_block %}.ingress.path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.{% .main_object_block %}.ingress.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "common.names.fullname" .) "servicePort" "http" "context" $)  | nindent 14 }}
+    {{- end }}
+    {{- range .Values.{% .main_object_block %}.ingress.extraHosts }}
+    - host: {{ .name | quote }}
+      http:
+        paths:
+          - path: {{ default "/" .path }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" $) }}
+            pathType: {{ default "ImplementationSpecific" .pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" (include "common.names.fullname" $) "servicePort" "http" "context" $) | nindent 14 }}
+    {{- end }}
+    {{- if .Values.{% .main_object_block %}.ingress.extraRules }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.ingress.extraRules "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if or (and .Values.{% .main_object_block %}.ingress.tls (or (include "common.ingress.certManagerRequest" ( dict "annotations" .Values.{% .main_object_block %}.ingress.annotations )) .Values.{% .main_object_block %}.ingress.selfSigned)) .Values.{% .main_object_block %}.ingress.extraTls }}
+  tls:
+    {{- if and .Values.{% .main_object_block %}.ingress.tls (or (include "common.ingress.certManagerRequest" ( dict "annotations" .Values.{% .main_object_block %}.ingress.annotations )) .Values.{% .main_object_block %}.ingress.selfSigned) }}
+    - hosts:
+        - {{ .Values.{% .main_object_block %}.ingress.hostname | quote }}
+      secretName: {{ printf "%s-tls" .Values.{% .main_object_block %}.ingress.hostname }}
+    {{- end }}
+    {{- if .Values.{% .main_object_block %}.ingress.extraTls }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.{% .main_object_block %}.ingress.extraTls "context" $) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

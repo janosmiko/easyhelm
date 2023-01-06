@@ -1,0 +1,43 @@
+chart_name: app
+chart_version: 0.0.1
+api_version: v2
+upstream_project_url: https://example.com
+upstream_project_version: 1.0.0
+description: Test Application
+config_file_name: config.yaml
+ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+component_name: app
+main_object_block: app
+main_container: node
+main_container_pod_description: "Application"
+main_object_additional_parameters: ""
+default_image_registry: docker.io
+default_image_repo: user/app
+default_image_tag: "dev"
+shell_image_registry: docker.io
+shell_image_repository: bitnami/bitnami-shell
+shell_image_tag: 11-debian-11-r1
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    tags:
+      - bitnami-common
+    version: 2.x.x
+subcharts: []
+#  - name: test
+#    description: testtest
+#    parameters: {}
+maintainers:
+  - name: Name
+    url: https://URL
+
+# TODO
+#objects:
+#  - name: app
+#    containers:
+#      - name: php
+#        image: php
+#    additional_parameters: {}
